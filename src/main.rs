@@ -9,7 +9,7 @@ use std::io::{self, Write};
 mod game {
     use super::*;
 
-    #[derive(Copy, Clone, Debug)]
+    #[derive(Copy, Clone, Debug, PartialEq)]
     pub enum CardType {
         Color,
         Skull,
@@ -19,7 +19,7 @@ mod game {
         SkullKing,
     }
 
-    #[derive(Copy, Clone, Debug)]
+    #[derive(Copy, Clone, Debug, PartialEq)]
     pub enum CardColor {
         Red,
         Blue,
@@ -32,8 +32,8 @@ mod game {
     }
 
     #[derive(Copy, Clone, Debug)]
-        pub struct ColorCard {
-            pub color: CardColor,
+    pub struct ColorCard {
+        pub color: CardColor,
         pub value: i32,
     }
 
@@ -466,6 +466,56 @@ mod game {
                 Box::new(SkullKingCard {}),
             ],
         }
+    }
+
+    pub fn beats(first : Box<dyn Card>, second : Box<dyn Card>) -> bool
+    {
+        let first_card_type = first.card_type();
+        let second_card_type = second.card_type();
+
+        // Flag in second always loses
+        if second_card_type == CardType::Flag {
+            return true;
+        }
+
+        // for 2 colored cards, the first one defines the required color, and if they match, the highest value wins
+        if first_card_type == CardType::Color && second_card_type == CardType::Color {
+            if first.card_color() == second.card_color() {
+                return first.value > second.value;
+            }
+            return true;
+        }
+        else if first_card_type == CardType::Color {
+            return false;
+        }
+
+        // Skull loses against all Specials and Skulls with higher value
+        if first_card_type == CardType::Skull
+        {
+            if second_card_type == CardType::Skull {
+                return first.value > second.value;
+            }
+
+            return second_card_type == CardType::Color;
+        }
+
+        // Mermaid loses only against a Pirate
+        if first_card_type == CardType::Mermaid {
+            return second_card_type != CardType::Pirate;
+        }
+
+        // Pirate loses only against the SkullKing
+        if first_card_type == CardType::Pirate {
+            return second_card_type != CardType::SkullKing;
+        }
+
+        // SkullKing loses only against a Mermaid
+        if first_card_type == CardType::SkullKing {
+            return second_card_type != CardType::Mermaid;
+        }
+
+        // the first card is a white flag, it loses by default
+        return false;
     }
 }
 
