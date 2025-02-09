@@ -1,4 +1,5 @@
-use crate::user::Player;
+use crate::user::*;
+use online_board::*;
 use rand::rng;
 use rand::seq::SliceRandom;
 use std::fmt;
@@ -433,10 +434,74 @@ mod game {
 }
 
 mod user {
+    use std::fmt;
+
     // A public struct with a public field of generic type `T`
     #[derive(Debug)]
     pub struct Player {
         pub name: String,
+    }
+
+    impl fmt::Display for Player {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "Player: {}", self.name)
+        }
+    }
+}
+
+mod online_board {
+    use std::fmt;
+
+    use crate::{game, user::Player};
+
+    pub struct Seat {
+        pub player: Player,
+        pub hand: Vec<Box<dyn game::Card>>,
+    }
+
+    pub struct Table {
+        pub seats: Vec<Seat>,
+        pub deck: game::Deck,
+        pub seat_count: i32,
+    }
+
+    impl fmt::Display for Seat {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "Player: {}", self.player);
+            write!(f, "hand: ");
+            // Print each card in the deck
+            Ok(for card in &self.hand {
+                write!(f, "card: {}", card);
+            })
+        }
+    }
+
+    impl fmt::Display for Table {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "Deck: ");
+            for card in &self.deck.cards {
+                write!(f, "card: {}", card);
+            }
+            write!(f, "Seats: ");
+            Ok(for seat in &self.seats {
+                write!(f, "seat: {}", seat);
+            })
+        }
+    }
+
+    pub fn new_table(player_count: i32) -> Table {
+        Table {
+            seats: Vec::new(),
+            deck: game::create_deck(),
+            seat_count: player_count,
+        }
+    }
+
+    pub fn new_seat(player: Player) -> Seat {
+        Seat {
+            player,
+            hand: Vec::new(),
+        }
     }
 }
 
@@ -458,7 +523,8 @@ fn main() {
 
     println!("Hello, you will be playing with {} players!", player_count);
 
-    let mut players = Vec::new();
+    let mut table = new_table(player_count);
+
     for i in 1..=player_count {
         print!("Please enter the name of player n°{}: ", i);
         io::stdout().flush().unwrap();
@@ -468,20 +534,16 @@ fn main() {
             .read_line(&mut player_name)
             .expect("Failed to read line");
 
-        players.push(Player {
+        table.seats.push(new_seat(Player {
             name: player_name.trim().to_string(),
-        });
+        }));
     }
-    println!("Players: {:?}", players);
 
-    let mut deck = game::create_deck();
+    table.deck = game::create_deck();
 
     // Shuffle the deck
     let mut rng = rng();
-    deck.cards.shuffle(&mut rng);
+    table.deck.cards.shuffle(&mut rng);
 
-    // Print each card in the deck
-    for card in &deck.cards {
-        println!("{}", card);
-    }
+    println!("Table: {}", table);
 }
