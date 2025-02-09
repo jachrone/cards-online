@@ -1,9 +1,11 @@
 use crate::user::Player;
+use rand::rng;
+use rand::seq::SliceRandom;
 use std::fmt;
 use std::io::{self, Write};
 
 mod game {
-    use std::fmt;
+    use super::*;
 
     #[derive(Copy, Clone, Debug)]
     pub enum CardType {
@@ -37,11 +39,14 @@ mod game {
     pub struct SkullCard {
         pub value: i32,
     }
+
     #[derive(Copy, Clone, Debug)]
     pub struct MermaidCard {}
 
     #[derive(Copy, Clone, Debug)]
     pub struct PirateCard {}
+
+    #[derive(Copy, Clone, Debug)]
     pub struct MarySueCard {
         pub choice: CardType,
     }
@@ -56,11 +61,12 @@ mod game {
         pub cards: Vec<Box<dyn Card>>,
     }
 
-    // Define the Special trait
+    // Define the Card trait
     pub trait Card: fmt::Display {
         fn card_type(&self) -> CardType;
-        fn card_color(&self) -> CardColor;
+        fn card_color(&self) -> Option<CardColor>;
     }
+
     pub trait Special: Card {}
     pub trait Color: Card {
         fn card_value(&self) -> i32;
@@ -82,10 +88,18 @@ mod game {
         fn card_type(&self) -> CardType {
             CardType::Skull
         }
-        fn card_color(&self) -> CardColor {
-            CardColor::Black
+
+        fn card_color(&self) -> Option<CardColor> {
+            Some(CardColor::Black)
         }
     }
+
+    impl fmt::Display for SkullCard {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "SkullCard with value: {}", self.value)
+        }
+    }
+
     impl Color for SkullCard {
         fn card_value(&self) -> i32 {
             self.value
@@ -94,25 +108,16 @@ mod game {
 
     impl Atout for SkullCard {}
 
-    impl fmt::Display for SkullCard {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "SkullCard with value: {}", self.value)
-        }
-    }
-
     impl Card for ColorCard {
         fn card_type(&self) -> CardType {
             CardType::Color
         }
-        fn card_color(&self) -> CardColor {
-            self.color
+
+        fn card_color(&self) -> Option<CardColor> {
+            Some(self.color)
         }
     }
-    impl Color for ColorCard {
-        fn card_value(&self) -> i32 {
-            self.value
-        }
-    }
+
     impl fmt::Display for ColorCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(
@@ -122,97 +127,123 @@ mod game {
             )
         }
     }
+
+    impl Color for ColorCard {
+        fn card_value(&self) -> i32 {
+            self.value
+        }
+    }
+
     impl Card for WhiteFlagCard {
         fn card_type(&self) -> CardType {
             CardType::Flag
         }
-        fn card_color(&self) -> CardColor {
-            CardColor::White
+
+        fn card_color(&self) -> Option<CardColor> {
+            Some(CardColor::White)
         }
     }
-    impl Special for WhiteFlagCard {}
-    impl WhiteFlag for WhiteFlagCard {}
+
     impl fmt::Display for WhiteFlagCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(f, "WhiteFlagCard")
         }
     }
 
+    impl Special for WhiteFlagCard {}
+    impl WhiteFlag for WhiteFlagCard {}
+
     impl Card for PirateCard {
         fn card_type(&self) -> CardType {
             CardType::Pirate
         }
-        fn card_color(&self) -> CardColor {
-            CardColor::Brown
+
+        fn card_color(&self) -> Option<CardColor> {
+            Some(CardColor::Brown)
         }
     }
-    impl Special for PirateCard {}
-    impl Pirate for PirateCard {}
+
     impl fmt::Display for PirateCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(f, "PirateCard")
         }
     }
 
+    impl Special for PirateCard {}
+    impl Pirate for PirateCard {}
+
     impl Card for MermaidCard {
         fn card_type(&self) -> CardType {
             CardType::Mermaid
         }
-        fn card_color(&self) -> CardColor {
-            CardColor::Pink
+
+        fn card_color(&self) -> Option<CardColor> {
+            Some(CardColor::Pink)
         }
     }
-    impl Special for MermaidCard {}
-    impl Mermaid for MermaidCard {}
+
     impl fmt::Display for MermaidCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(f, "MermaidCard")
         }
     }
+
+    impl Special for MermaidCard {}
+    impl Mermaid for MermaidCard {}
+
     impl Card for MarySueCard {
         fn card_type(&self) -> CardType {
             CardType::Pirate
         }
-        fn card_color(&self) -> CardColor {
-            CardColor::Brown
+
+        fn card_color(&self) -> Option<CardColor> {
+            Some(CardColor::Brown)
         }
     }
-    impl Choice for MarySueCard {
-        fn card_type_primary(&self) -> CardType {
-            CardType::Pirate
-        }
-        fn card_type_choice(&self) -> CardType {
-            self.choice
-        }
-        fn card_type(&self) -> CardType {
-            CardType::Pirate
-        }
-    }
-    impl Special for MarySueCard {}
-    impl Pirate for MarySueCard {}
-    impl WhiteFlag for MarySueCard {}
-    impl MarySue for MarySueCard {}
+
     impl fmt::Display for MarySueCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(f, "MarySueCard with choice: {:?}", self.choice)
         }
     }
 
+    impl Choice for MarySueCard {
+        fn card_type_primary(&self) -> CardType {
+            CardType::Pirate
+        }
+
+        fn card_type_choice(&self) -> CardType {
+            self.choice
+        }
+
+        fn card_type(&self) -> CardType {
+            CardType::Pirate
+        }
+    }
+
+    impl Special for MarySueCard {}
+    impl Pirate for MarySueCard {}
+    impl WhiteFlag for MarySueCard {}
+    impl MarySue for MarySueCard {}
+
     impl Card for SkullKingCard {
         fn card_type(&self) -> CardType {
             CardType::SkullKing
         }
-        fn card_color(&self) -> CardColor {
-            CardColor::DarkBlue
+
+        fn card_color(&self) -> Option<CardColor> {
+            Some(CardColor::DarkBlue)
         }
     }
-    impl Special for SkullKingCard {}
-    impl SkullKing for SkullKingCard {}
+
     impl fmt::Display for SkullKingCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(f, "SkullKingCard")
         }
     }
+
+    impl Special for SkullKingCard {}
+    impl SkullKing for SkullKingCard {}
 
     pub fn create_deck() -> Deck {
         Deck {
@@ -412,7 +443,7 @@ mod user {
 fn main() {
     println!("Hello, welcome to card online");
 
-    print!("Please enter the number of players : ");
+    print!("Please enter the number of players: ");
     io::stdout().flush().unwrap(); // Ensure the prompt is displayed before reading input
 
     let mut player_count_s = String::new();
@@ -443,8 +474,13 @@ fn main() {
     }
     println!("Players: {:?}", players);
 
-    let deck = game::create_deck();
+    let mut deck = game::create_deck();
 
+    // Shuffle the deck
+    let mut rng = rng();
+    deck.cards.shuffle(&mut rng);
+
+    // Print each card in the deck
     for card in &deck.cards {
         println!("{}", card);
     }
