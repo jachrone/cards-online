@@ -1,8 +1,9 @@
 use crate::user::*;
+use game::CardColor;
 use online_board::*;
 use rand::rng;
 use rand::seq::SliceRandom;
-use std::fmt;
+use std::{fmt, vec};
 use std::io::{self, Write};
 
 mod game {
@@ -31,8 +32,8 @@ mod game {
     }
 
     #[derive(Copy, Clone, Debug)]
-    pub struct ColorCard {
-        pub color: CardColor,
+        pub struct ColorCard {
+            pub color: CardColor,
         pub value: i32,
     }
 
@@ -97,7 +98,7 @@ mod game {
 
     impl fmt::Display for SkullCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "SkullCard with value: {}", self.value)
+            write!(f, "SkullCard with value: {}\n", self.value)
         }
     }
 
@@ -123,7 +124,7 @@ mod game {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(
                 f,
-                "ColorCard with color: {:?} and value: {}",
+                "ColorCard with color: {:?} and value: {}\n",
                 self.color, self.value
             )
         }
@@ -246,7 +247,46 @@ mod game {
     impl Special for SkullKingCard {}
     impl SkullKing for SkullKingCard {}
 
-    pub fn create_deck() -> Deck {
+    pub fn create_deck(
+        card_colors : Vec<CardColor>,
+        nb_per_color : i32,
+        skull_nb : i32
+    ) -> Deck {
+        const WHITE_FLAG_NB: i32 = 5;
+        const PIRATE_NB: i32 = 5;
+        const MERMAID_NB: i32 = 5;
+
+        let mut result = Deck { cards: vec![] };
+        
+        for color in card_colors {
+            for val in 1..= nb_per_color {
+                result.cards.push(Box::new(ColorCard {color: color, value : val }));
+            }
+        }
+
+        for val in 1..=skull_nb {
+            result.cards.push(Box::new(SkullCard {value : val }));
+        }
+        
+        for _flag in 0..WHITE_FLAG_NB {
+            result.cards.push(Box::new(WhiteFlagCard {}));
+        } 
+
+        for _pirate in 0..PIRATE_NB {
+            result.cards.push(Box::new(PirateCard {}));
+        }
+        
+        for _mermaid in 0..MERMAID_NB {
+            result.cards.push(Box::new(MermaidCard {}));
+        }
+        
+        result.cards.push(Box::new(SkullKingCard {}));
+        result.cards.push(Box::new(MarySueCard {choice: CardType::Pirate}));
+
+        return result;
+    }
+
+    pub fn create_default_deck() -> Deck {
         Deck {
             cards: vec![
                 Box::new(SkullCard { value: 1 }),
@@ -467,7 +507,7 @@ mod online_board {
 
     impl fmt::Display for Seat {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "Player: {}", self.player);
+            write!(f, "Player: {}\n", self.player);
             write!(f, "hand: ");
             // Print each card in the deck
             Ok(for card in &self.hand {
@@ -492,7 +532,7 @@ mod online_board {
     pub fn new_table(player_count: i32) -> Table {
         Table {
             seats: Vec::new(),
-            deck: game::create_deck(),
+            deck: game::create_default_deck(),
             seat_count: player_count,
         }
     }
@@ -539,7 +579,7 @@ fn main() {
         }));
     }
 
-    table.deck = game::create_deck();
+    table.deck = game::create_deck(vec![CardColor::Red, CardColor::Blue, CardColor::Green], 13, 13);
 
     // Shuffle the deck
     let mut rng = rng();
