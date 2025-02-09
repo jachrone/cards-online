@@ -50,7 +50,7 @@ mod game {
 
     #[derive(Copy, Clone, Debug)]
     pub struct MarySueCard {
-        pub choice: CardType,
+        pub choices: CardType,
     }
 
     #[derive(Copy, Clone, Debug)]
@@ -98,7 +98,7 @@ mod game {
 
     impl fmt::Display for SkullCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "SkullCard with value: {}\n", self.value)
+            write!(f, "{} Skull\n", self.value)
         }
     }
 
@@ -122,11 +122,7 @@ mod game {
 
     impl fmt::Display for ColorCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(
-                f,
-                "ColorCard with color: {:?} and value: {}\n",
-                self.color, self.value
-            )
+            write!(f, "{} {:?}\n", self.value, self.color)
         }
     }
 
@@ -148,7 +144,7 @@ mod game {
 
     impl fmt::Display for WhiteFlagCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "WhiteFlagCard")
+            write!(f, "WhiteFlag\n")
         }
     }
 
@@ -167,7 +163,7 @@ mod game {
 
     impl fmt::Display for PirateCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "PirateCard")
+            write!(f, "Pirate\n")
         }
     }
 
@@ -186,7 +182,7 @@ mod game {
 
     impl fmt::Display for MermaidCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "MermaidCard")
+            write!(f, "Mermaid\n")
         }
     }
 
@@ -205,7 +201,7 @@ mod game {
 
     impl fmt::Display for MarySueCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "MarySueCard with choice: {:?}", self.choice)
+            write!(f, "MarySue (choices {:?})\n", self.choices)
         }
     }
 
@@ -215,7 +211,7 @@ mod game {
         }
 
         fn card_type_choice(&self) -> CardType {
-            self.choice
+            self.choices
         }
 
         fn card_type(&self) -> CardType {
@@ -240,7 +236,7 @@ mod game {
 
     impl fmt::Display for SkullKingCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "SkullKingCard")
+            write!(f, "SkullKing\n")
         }
     }
 
@@ -281,7 +277,7 @@ mod game {
         }
         
         result.cards.push(Box::new(SkullKingCard {}));
-        result.cards.push(Box::new(MarySueCard {choice: CardType::Pirate}));
+        result.cards.push(Box::new(MarySueCard {choices: CardType::Pirate}));
 
         return result;
     }
@@ -459,7 +455,7 @@ mod game {
                     value: 13,
                 }),
                 Box::new(MarySueCard {
-                    choice: CardType::Pirate,
+                    choices: CardType::Pirate,
                 }),
                 Box::new(PirateCard {}),
                 Box::new(PirateCard {}),
@@ -484,7 +480,7 @@ mod user {
 
     impl fmt::Display for Player {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "Player: {}", self.name)
+            write!(f, "name: {}\n", self.name)
         }
     }
 }
@@ -507,24 +503,24 @@ mod online_board {
 
     impl fmt::Display for Seat {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "Player: {}\n", self.player);
-            write!(f, "hand: ");
+            write!(f, "{}", self.player);
+            write!(f, "hand:\n");
             // Print each card in the deck
             Ok(for card in &self.hand {
-                write!(f, "card: {}", card);
+                write!(f, "{}, ", card);
             })
         }
     }
 
     impl fmt::Display for Table {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "Deck: ");
+            write!(f, "\tDeck:\n\t\tcards:\n");
             for card in &self.deck.cards {
-                write!(f, "card: {}", card);
+                write!(f, "\t\t\t{}", card);
             }
-            write!(f, "Seats: ");
+            write!(f, "Seats:\n");
             Ok(for seat in &self.seats {
-                write!(f, "seat: {}", seat);
+                write!(f, "{}\n", seat);
             })
         }
     }
@@ -585,5 +581,5 @@ fn main() {
     let mut rng = rng();
     table.deck.cards.shuffle(&mut rng);
 
-    println!("Table: {}", table);
+    println!("Table:\n{}", table);
 }
