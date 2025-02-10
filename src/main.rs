@@ -3,8 +3,8 @@ use game::CardColor;
 use online_board::*;
 use rand::rng;
 use rand::seq::SliceRandom;
-use std::{fmt, vec};
 use std::io::{self, Write};
+use std::{fmt, vec};
 
 mod game {
     use super::*;
@@ -16,6 +16,7 @@ mod game {
         Flag,
         Mermaid,
         Pirate,
+        MarySue,
         SkullKing,
     }
 
@@ -32,8 +33,8 @@ mod game {
     }
 
     #[derive(Copy, Clone, Debug)]
-        pub struct ColorCard {
-            pub color: CardColor,
+    pub struct ColorCard {
+        pub color: CardColor,
         pub value: i32,
     }
 
@@ -50,7 +51,7 @@ mod game {
 
     #[derive(Copy, Clone, Debug)]
     pub struct MarySueCard {
-        pub choices: CardType,
+        pub choice: Option<CardType>,
     }
 
     #[derive(Copy, Clone, Debug)]
@@ -66,7 +67,7 @@ mod game {
     // Define the Card trait
     pub trait Card: fmt::Display {
         fn card_type(&self) -> CardType;
-        fn card_color(&self) -> Option<CardColor>;
+        fn card_color(&self) -> CardColor;
     }
 
     pub trait Special: Card {}
@@ -75,8 +76,6 @@ mod game {
     }
     pub trait Atout: Color {}
     pub trait Choice: Card {
-        fn card_type_primary(&self) -> CardType;
-        fn card_type_choice(&self) -> CardType;
         fn card_type(&self) -> CardType;
     }
     pub trait Pirate: Special {}
@@ -91,8 +90,8 @@ mod game {
             CardType::Skull
         }
 
-        fn card_color(&self) -> Option<CardColor> {
-            Some(CardColor::Black)
+        fn card_color(&self) -> CardColor {
+            CardColor::Black
         }
     }
 
@@ -115,8 +114,8 @@ mod game {
             CardType::Color
         }
 
-        fn card_color(&self) -> Option<CardColor> {
-            Some(self.color)
+        fn card_color(&self) -> CardColor {
+            self.color
         }
     }
 
@@ -137,8 +136,8 @@ mod game {
             CardType::Flag
         }
 
-        fn card_color(&self) -> Option<CardColor> {
-            Some(CardColor::White)
+        fn card_color(&self) -> CardColor {
+            CardColor::White
         }
     }
 
@@ -156,8 +155,8 @@ mod game {
             CardType::Pirate
         }
 
-        fn card_color(&self) -> Option<CardColor> {
-            Some(CardColor::Brown)
+        fn card_color(&self) -> CardColor {
+            CardColor::Brown
         }
     }
 
@@ -175,8 +174,8 @@ mod game {
             CardType::Mermaid
         }
 
-        fn card_color(&self) -> Option<CardColor> {
-            Some(CardColor::Pink)
+        fn card_color(&self) -> CardColor {
+            CardColor::Pink
         }
     }
 
@@ -191,29 +190,25 @@ mod game {
 
     impl Card for MarySueCard {
         fn card_type(&self) -> CardType {
-            CardType::Pirate
+            if self.choice.is_some() {
+                self.choice.unwrap()
+            } else {
+                CardType::Pirate
+            }
         }
 
-        fn card_color(&self) -> Option<CardColor> {
-            Some(CardColor::Brown)
+        fn card_color(&self) -> CardColor {
+            CardColor::Brown
         }
     }
 
     impl fmt::Display for MarySueCard {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "MarySue (choices {:?})\n", self.choices)
+            write!(f, "MarySue (choices {:?})\n", self.choice)
         }
     }
 
     impl Choice for MarySueCard {
-        fn card_type_primary(&self) -> CardType {
-            CardType::Pirate
-        }
-
-        fn card_type_choice(&self) -> CardType {
-            self.choices
-        }
-
         fn card_type(&self) -> CardType {
             CardType::Pirate
         }
@@ -229,8 +224,8 @@ mod game {
             CardType::SkullKing
         }
 
-        fn card_color(&self) -> Option<CardColor> {
-            Some(CardColor::DarkBlue)
+        fn card_color(&self) -> CardColor {
+            CardColor::DarkBlue
         }
     }
 
@@ -243,229 +238,68 @@ mod game {
     impl Special for SkullKingCard {}
     impl SkullKing for SkullKingCard {}
 
-    pub fn create_deck(
-        card_colors : Vec<CardColor>,
-        nb_per_color : i32,
-        skull_nb : i32
-    ) -> Deck {
+    fn new_card(
+        card_type: CardType,
+        card_number: Option<i32>,
+        card_color: Option<CardColor>,
+    ) -> Box<dyn Card> {
+        match card_type {
+            CardType::Color => Box::new(ColorCard {
+                color: card_color.unwrap(),
+                value: card_number.unwrap(),
+            }),
+            CardType::Skull => Box::new(SkullCard {
+                value: card_number.unwrap(),
+            }),
+            CardType::MarySue => Box::new(MarySueCard { choice: None }),
+            CardType::Flag => Box::new(WhiteFlagCard {}),
+            CardType::Mermaid => Box::new(MermaidCard {}),
+            CardType::Pirate => Box::new(PirateCard {}),
+            CardType::SkullKing => Box::new(SkullKingCard {}),
+        }
+    }
+
+    pub fn create_deck(nb_per_color: i32) -> Deck {
         const WHITE_FLAG_NB: i32 = 5;
         const PIRATE_NB: i32 = 5;
-        const MERMAID_NB: i32 = 5;
+        const MERMAID_NB: i32 = 2;
 
         let mut result = Deck { cards: vec![] };
-        
-        for color in card_colors {
-            for val in 1..= nb_per_color {
-                result.cards.push(Box::new(ColorCard {color: color, value : val }));
+
+        for color in vec![CardColor::Red, CardColor::Blue, CardColor::Green] {
+            for val in 1..=nb_per_color {
+                result
+                    .cards
+                    .push(new_card(CardType::Color, Some(val), Some(color)));
             }
         }
 
-        for val in 1..=skull_nb {
-            result.cards.push(Box::new(SkullCard {value : val }));
+        for val in 1..=nb_per_color {
+            result
+                .cards
+                .push(new_card(CardType::Skull, Some(val), None));
         }
-        
+
         for _flag in 0..WHITE_FLAG_NB {
-            result.cards.push(Box::new(WhiteFlagCard {}));
-        } 
+            result.cards.push(new_card(CardType::Flag, None, None));
+        }
 
         for _pirate in 0..PIRATE_NB {
-            result.cards.push(Box::new(PirateCard {}));
+            result.cards.push(new_card(CardType::Pirate, None, None));
         }
-        
+
         for _mermaid in 0..MERMAID_NB {
-            result.cards.push(Box::new(MermaidCard {}));
+            result.cards.push(new_card(CardType::Mermaid, None, None));
         }
-        
-        result.cards.push(Box::new(SkullKingCard {}));
-        result.cards.push(Box::new(MarySueCard {choices: CardType::Pirate}));
+
+        result.cards.push(new_card(CardType::SkullKing, None, None));
+        result.cards.push(new_card(CardType::MarySue, None, None));
 
         return result;
     }
 
     pub fn create_default_deck() -> Deck {
-        Deck {
-            cards: vec![
-                Box::new(SkullCard { value: 1 }),
-                Box::new(SkullCard { value: 2 }),
-                Box::new(SkullCard { value: 3 }),
-                Box::new(SkullCard { value: 4 }),
-                Box::new(SkullCard { value: 5 }),
-                Box::new(SkullCard { value: 6 }),
-                Box::new(SkullCard { value: 7 }),
-                Box::new(SkullCard { value: 8 }),
-                Box::new(SkullCard { value: 9 }),
-                Box::new(SkullCard { value: 10 }),
-                Box::new(SkullCard { value: 11 }),
-                Box::new(SkullCard { value: 12 }),
-                Box::new(SkullCard { value: 13 }),
-                Box::new(ColorCard {
-                    color: CardColor::Red,
-                    value: 1,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Red,
-                    value: 2,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Red,
-                    value: 3,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Red,
-                    value: 4,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Red,
-                    value: 5,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Red,
-                    value: 6,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Red,
-                    value: 7,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Red,
-                    value: 8,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Red,
-                    value: 9,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Red,
-                    value: 10,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Red,
-                    value: 11,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Red,
-                    value: 12,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Red,
-                    value: 13,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Green,
-                    value: 1,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Green,
-                    value: 2,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Green,
-                    value: 3,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Green,
-                    value: 4,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Green,
-                    value: 5,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Green,
-                    value: 6,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Green,
-                    value: 7,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Green,
-                    value: 8,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Green,
-                    value: 9,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Green,
-                    value: 10,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Green,
-                    value: 11,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Green,
-                    value: 12,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Green,
-                    value: 13,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Blue,
-                    value: 1,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Blue,
-                    value: 2,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Blue,
-                    value: 3,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Blue,
-                    value: 4,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Blue,
-                    value: 5,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Blue,
-                    value: 6,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Blue,
-                    value: 7,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Blue,
-                    value: 8,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Blue,
-                    value: 9,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Blue,
-                    value: 10,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Blue,
-                    value: 11,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Blue,
-                    value: 12,
-                }),
-                Box::new(ColorCard {
-                    color: CardColor::Blue,
-                    value: 13,
-                }),
-                Box::new(MarySueCard {
-                    choices: CardType::Pirate,
-                }),
-                Box::new(PirateCard {}),
-                Box::new(PirateCard {}),
-                Box::new(PirateCard {}),
-                Box::new(PirateCard {}),
-                Box::new(MermaidCard {}),
-                Box::new(MermaidCard {}),
-                Box::new(SkullKingCard {}),
-            ],
-        }
+        create_deck(13)
     }
 }
 
@@ -575,11 +409,18 @@ fn main() {
         }));
     }
 
-    table.deck = game::create_deck(vec![CardColor::Red, CardColor::Blue, CardColor::Green], 13, 13);
+    table.deck = game::create_default_deck();
 
     // Shuffle the deck
     let mut rng = rng();
     table.deck.cards.shuffle(&mut rng);
+
+    // Distribute one card to the first player
+    if let Some(first_seat) = table.seats.first_mut() {
+        if let Some(card) = table.deck.cards.pop() {
+            first_seat.hand.push(card);
+        }
+    }
 
     println!("Table:\n{}", table);
 }
