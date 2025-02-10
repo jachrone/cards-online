@@ -1,5 +1,4 @@
 use crate::user::*;
-use game::CardColor;
 use online_board::*;
 use rand::rng;
 use rand::seq::SliceRandom;
@@ -320,28 +319,39 @@ mod user {
 }
 
 mod online_board {
-    use std::fmt;
-
     use crate::{game, user::Player};
+    use std::fmt;
 
     pub struct Seat {
         pub player: Player,
         pub hand: Vec<Box<dyn game::Card>>,
+        pub plis: Vec<Vec<Box<dyn game::Card>>>,
+    }
+
+    struct River {
+        //todo find holder of pair
+        //pub cards: Vec<Tuple<&Player, Box<dyn game::Card>>>,
+        pub requested_color: Option<game::CardColor>,
+        // todo
+        // fn play_card(&mut self, player: &Player, card: Box<dyn game::Card>) {
+        //     self.cards.push((player, card));
+        // }
     }
 
     pub struct Table {
         pub seats: Vec<Seat>,
         pub deck: game::Deck,
-        pub seat_count: i32,
+        //river: River,
+        seat_count: i32,
     }
 
     impl fmt::Display for Seat {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(f, "{}", self.player);
-            write!(f, "hand:\n");
+            write!(f, "\thand:\n");
             // Print each card in the deck
             Ok(for card in &self.hand {
-                write!(f, "{}, ", card);
+                write!(f, "\t\t{}", card);
             })
         }
     }
@@ -364,6 +374,7 @@ mod online_board {
             seats: Vec::new(),
             deck: game::create_default_deck(),
             seat_count: player_count,
+            //river: Vec::new(),
         }
     }
 
@@ -371,6 +382,7 @@ mod online_board {
         Seat {
             player,
             hand: Vec::new(),
+            plis: Vec::new(),
         }
     }
 }
@@ -415,10 +427,14 @@ fn main() {
     let mut rng = rng();
     table.deck.cards.shuffle(&mut rng);
 
-    // Distribute one card to the first player
-    if let Some(first_seat) = table.seats.first_mut() {
+    // Distribute two card to each players
+    for seat in table.seats.iter_mut() {
         if let Some(card) = table.deck.cards.pop() {
-            first_seat.hand.push(card);
+            seat.hand.push(card);
+        }
+        // and again ... and again (spoon joke)
+        if let Some(card) = table.deck.cards.pop() {
+            seat.hand.push(card);
         }
     }
 
