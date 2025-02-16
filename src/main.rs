@@ -6,9 +6,11 @@ use std::io::{self, Write};
 use std::{fmt, vec};
 
 mod game {
+    use std::any::Any;
+
     use super::*;
 
-    #[derive(Copy, Clone, Debug)]
+    #[derive(Copy, Clone, PartialEq, Debug)]
     pub enum CardType {
         Color,
         Skull,
@@ -19,7 +21,7 @@ mod game {
         SkullKing,
     }
 
-    #[derive(Copy, Clone, Debug)]
+    #[derive(Copy, Clone, PartialEq, Debug)]
     pub enum CardColor {
         Red,
         Blue,
@@ -67,15 +69,27 @@ mod game {
     pub trait Card: fmt::Display {
         fn card_type(&self) -> CardType;
         fn card_color(&self) -> CardColor;
+        fn card_value(&self) -> Option<i32> {
+            None
+        }
+        fn is_card_special(&self) -> bool {
+            false
+        }
+        fn set_card_type(&mut self, _player_choice: CardType) {}
+        fn as_any(&self) -> &dyn std::any::Any;
     }
 
-    pub trait Special: Card {}
+    pub trait Special: Card {
+        fn is_card_special(&self) -> bool {
+            true
+        }
+    }
     pub trait Color: Card {
-        fn card_value(&self) -> i32;
+        fn card_value(&self) -> Option<i32>;
     }
     pub trait Atout: Color {}
     pub trait Choice: Card {
-        fn card_type(&self) -> CardType;
+        fn set_card_type(&mut self, player_choice: CardType);
     }
     pub trait Pirate: Special {}
     pub trait WhiteFlag: Special {}
@@ -92,6 +106,10 @@ mod game {
         fn card_color(&self) -> CardColor {
             CardColor::Black
         }
+
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
     }
 
     impl fmt::Display for SkullCard {
@@ -101,8 +119,8 @@ mod game {
     }
 
     impl Color for SkullCard {
-        fn card_value(&self) -> i32 {
-            self.value
+        fn card_value(&self) -> Option<i32> {
+            Some(self.value)
         }
     }
 
@@ -116,6 +134,10 @@ mod game {
         fn card_color(&self) -> CardColor {
             self.color
         }
+
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
     }
 
     impl fmt::Display for ColorCard {
@@ -125,8 +147,8 @@ mod game {
     }
 
     impl Color for ColorCard {
-        fn card_value(&self) -> i32 {
-            self.value
+        fn card_value(&self) -> Option<i32> {
+            Some(self.value)
         }
     }
 
@@ -137,6 +159,10 @@ mod game {
 
         fn card_color(&self) -> CardColor {
             CardColor::White
+        }
+
+        fn as_any(&self) -> &dyn Any {
+            self
         }
     }
 
@@ -157,6 +183,10 @@ mod game {
         fn card_color(&self) -> CardColor {
             CardColor::Brown
         }
+
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
     }
 
     impl fmt::Display for PirateCard {
@@ -175,6 +205,10 @@ mod game {
 
         fn card_color(&self) -> CardColor {
             CardColor::Pink
+        }
+
+        fn as_any(&self) -> &dyn Any {
+            self
         }
     }
 
@@ -199,6 +233,10 @@ mod game {
         fn card_color(&self) -> CardColor {
             CardColor::Brown
         }
+
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
     }
 
     impl fmt::Display for MarySueCard {
@@ -208,8 +246,8 @@ mod game {
     }
 
     impl Choice for MarySueCard {
-        fn card_type(&self) -> CardType {
-            CardType::Pirate
+        fn set_card_type(&mut self, player_choice: CardType) {
+            self.choice = Some(player_choice);
         }
     }
 
@@ -225,6 +263,10 @@ mod game {
 
         fn card_color(&self) -> CardColor {
             CardColor::DarkBlue
+        }
+
+        fn as_any(&self) -> &dyn Any {
+            self
         }
     }
 
@@ -299,6 +341,30 @@ mod game {
 
     pub fn create_default_deck() -> Deck {
         create_deck(13)
+    }
+
+    pub fn beats(first: Box<dyn Card>, second: Box<dyn Card>) -> bool {
+        let first_card_type = first.card_type();
+        let second_card_type = second.card_type();
+
+        match (first_card_type, second_card_type) {
+            (_, CardType::Flag) => return true,
+            (CardType::Pirate, CardType::SkullKing) => return false,
+            (CardType::Pirate, _) => return true,
+            (CardType::Mermaid, _) => return true, // todo mermaid beats pirate if there is a skullking
+            (CardType::SkullKing, _) => return true,
+            (CardType::Skull, CardType::Skull) => {
+                return first.card_value().unwrap() > second.card_value().unwrap()
+            }
+            (CardType::Skull, _) => return true,
+            (CardType::Color, CardType::Color) => {
+                if first.card_color() == second.card_color() {
+                    return first.card_value().unwrap() > second.card_value().unwrap();
+                }
+                return true;
+            }
+            (_, _) => return false,
+        }
     }
 }
 
