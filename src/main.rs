@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate rocket;
+
 mod game;
 mod online_board;
 mod user;
@@ -10,7 +13,7 @@ use std::io::{self, Write};
 use std::{fmt, vec};
 use user::*;
 
-fn main() {
+fn console_run() {
     println!("Hello, welcome to card online");
 
     print!("Please enter the number of players: ");
@@ -89,4 +92,15 @@ fn main() {
     clear_table_after_game(&mut table);
 
     println!("cleared Table:\n{}", table);
+}
+
+#[get("/")]
+fn index() -> &'static str {
+    "Hello, world!"
+}
+
+#[launch]
+fn rocket() -> _ {
+    console_run();
+    rocket::build().mount("/", routes![index])
 }
