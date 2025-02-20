@@ -1,5 +1,5 @@
 [package]
-name = "my-rust-cli"
+name = "cards_online"
 version = "0.1.0"
 edition = "2021"
 
