@@ -5,17 +5,21 @@ use std::fmt;
 
 pub struct Seat {
     pub player: Player,
-    pub hand: Vec<Box<dyn game::Card>>,
-    pub plis: Vec<Box<dyn game::Card>>,
+    pub hand: Vec<Box<dyn game::Card + Sync>>,
+    pub plis: Vec<Box<dyn game::Card + Sync>>,
 }
 
 pub struct PlayedCard {
     order: i32,
     player_id: i32,
-    card: Box<dyn game::Card>,
+    card: Box<dyn game::Card + Sync>,
 }
 
-pub fn play_card(table_river: &mut Vec<PlayedCard>, player: &Player, card: Box<dyn game::Card>) {
+pub fn play_card(
+    table_river: &mut Vec<PlayedCard>,
+    player: &Player,
+    card: Box<dyn game::Card + Sync>,
+) {
     let played_card = PlayedCard {
         order: table_river.len() as i32,
         player_id: player.player_id,
@@ -64,7 +68,7 @@ pub struct Table {
     pub seats: Vec<Seat>,
     pub deck: game::Deck,
     pub river: Vec<PlayedCard>,
-    seat_count: i32,
+    pub seat_count: i32,
 }
 
 impl fmt::Display for Seat {

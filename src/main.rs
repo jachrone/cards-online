@@ -10,10 +10,19 @@ use online_board::*;
 use rand::rng;
 use rand::seq::SliceRandom;
 use std::io::{self, Write};
+use std::sync::Mutex;
 use std::{fmt, vec};
 use user::*;
 
-fn console_run() {
+static mut GAMEBOARD: Mutex<Table> = Mutex::new(Table {
+    seats: Vec::new(),
+    river: Vec::new(),
+    deck: Deck { cards: Vec::new() },
+    seat_count: 0,
+});
+static mut IS_GAME_STARTED: Mutex<bool> = Mutex::new(false);
+
+fn console_test_run() {
     println!("Hello, welcome to card online");
 
     print!("Please enter the number of players: ");
@@ -99,8 +108,54 @@ fn index() -> &'static str {
     "Hello, world!"
 }
 
+#[get("/AddPlayer/<name>")]
+fn add_player(name: String) -> String {
+    let mut game_board = unsafe { GAMEBOARD.lock().unwrap() };
+    let player_id = game_board.seat_count + 1;
+    game_board.seats.push(new_seat(Player {
+        name: name.clone(),
+        player_id: player_id,
+    }));
+    game_board.seat_count += 1;
+    format!("Player {} added to the table", name)
+}
+
+#[get("/StartGame")]
+fn start_game() -> String {
+    let mut is_game_started = unsafe { IS_GAME_STARTED.lock().unwrap() };
+    if *is_game_started {
+        return "Game already started".to_string();
+    }
+    *is_game_started = true;
+
+    let mut game_board = unsafe { GAMEBOARD.lock().unwrap() };
+    // create a new deck
+    game_board.deck = create_default_deck();
+
+    // Shuffle the deck
+    let mut rng = rng();
+    game_board.deck.cards.shuffle(&mut rng);
+
+    // shuffle the seats
+    game_board.seats.shuffle(&mut rng);
+
+    // Collect cards to distribute
+    let mut cards = Vec::new();
+    for _ in 0..game_board.seats.len() {
+        if let Some(card) = game_board.deck.cards.pop() {
+            cards.push(card);
+        }
+    }
+
+    // Distribute one card to each player for the first round
+    for (seat, card) in game_board.seats.iter_mut().zip(cards) {
+        seat.hand.push(card);
+    }
+
+    format!("Game started\n{}", game_board)
+}
+
 #[launch]
 fn rocket() -> _ {
-    console_run();
-    rocket::build().mount("/", routes![index])
+    rocket::build().mount("/", routes![index, add_player, start_game])
 }

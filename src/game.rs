@@ -54,7 +54,7 @@ pub struct WhiteFlagCard {}
 pub struct SkullKingCard {}
 
 pub struct Deck {
-    pub cards: Vec<Box<dyn Card>>,
+    pub cards: Vec<Box<dyn Card + Sync>>,
 }
 
 // Define the Card trait
@@ -366,7 +366,7 @@ fn new_card(
     card_type: CardType,
     card_number: Option<i32>,
     card_color: Option<CardColor>,
-) -> Box<dyn Card> {
+) -> Box<dyn Card + Sync> {
     match card_type {
         CardType::Color => Box::new(ColorCard {
             color: card_color.unwrap(),
