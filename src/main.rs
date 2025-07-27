@@ -11,16 +11,16 @@ use rand::rng;
 use rand::seq::SliceRandom;
 use std::io::{self, Write};
 use std::sync::Mutex;
-use std::{fmt, vec};
+use std::vec;
 use user::*;
 
-static mut GAMEBOARD: Mutex<Table> = Mutex::new(Table {
+static GAMEBOARD: Mutex<Table> = Mutex::new(Table {
     seats: Vec::new(),
     river: Vec::new(),
-    deck: Deck { cards: Vec::new() },
+    deck: Deck::default(),
     seat_count: 0,
 });
-static mut IS_GAME_STARTED: Mutex<bool> = Mutex::new(false);
+static IS_GAME_STARTED: Mutex<bool> = Mutex::new(false);
 
 fn console_test_run() {
     println!("Hello, welcome to card online");
@@ -110,7 +110,7 @@ fn index() -> &'static str {
 
 #[get("/AddPlayer/<name>")]
 fn add_player(name: String) -> String {
-    let mut game_board = unsafe { GAMEBOARD.lock().unwrap() };
+    let mut game_board = GAMEBOARD.lock().unwrap();
     let player_id = game_board.seat_count + 1;
     game_board.seats.push(new_seat(Player {
         name: name.clone(),
@@ -122,13 +122,13 @@ fn add_player(name: String) -> String {
 
 #[get("/StartGame")]
 fn start_game() -> String {
-    let mut is_game_started = unsafe { IS_GAME_STARTED.lock().unwrap() };
+    let mut is_game_started = IS_GAME_STARTED.lock().unwrap();
     if *is_game_started {
         return "Game already started".to_string();
     }
     *is_game_started = true;
 
-    let mut game_board = unsafe { GAMEBOARD.lock().unwrap() };
+    let mut game_board = GAMEBOARD.lock().unwrap();
     // create a new deck
     game_board.deck = create_default_deck();
 

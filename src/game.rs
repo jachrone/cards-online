@@ -2,8 +2,10 @@ use std::any::Any;
 use std::fmt;
 use std::vec;
 
+use rand::seq::SliceRandom;
+
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum CardType {
+enum CardTypeName {
     Color,
     Skull,
     Flag,
@@ -11,6 +13,37 @@ pub enum CardType {
     Pirate,
     MarySue,
     SkullKing,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum CardType {
+    Color(ColorCard),
+    Skull(SkullCard),
+    Flag(WhiteFlagCard),
+    Mermaid(MermaidCard),
+    Pirate(PirateCard),
+    MarySue(MarySueCard),
+    SkullKing(SkullKingCard),
+}
+
+impl fmt::Display for CardType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CardType::Color(card) => write!(f, "{}", card),
+            CardType::Skull(card) => write!(f, "{}", card),
+            CardType::Flag(card) => write!(f, "{}", card),
+            CardType::Mermaid(card) => write!(f, "{}", card),
+            CardType::Pirate(card) => write!(f, "{}", card),
+            CardType::MarySue(card) => write!(f, "{}", card),
+            CardType::SkullKing(card) => write!(f, "{}", card),
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum CardEffect {
+    Pirate,
+    Flag,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -44,7 +77,7 @@ pub struct PirateCard {}
 
 #[derive(Copy, Clone, Debug)]
 pub struct MarySueCard {
-    pub choice: Option<CardType>,
+    pub choice: Option<CardEffect>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -53,18 +86,37 @@ pub struct WhiteFlagCard {}
 #[derive(Copy, Clone, Debug)]
 pub struct SkullKingCard {}
 
+// type PlayCard = Box<dyn Card>;
+pub type PlayCard = CardType;
+
+#[derive(Debug, Default, Clone)]
 pub struct Deck {
-    pub cards: Vec<Box<dyn Card + Sync>>,
+    pub cards: Vec<PlayCard>,
+}
+
+impl Deck {
+    pub fn new() -> Self {
+        create_default_deck()
+    }
+
+    pub const fn default() -> Self {
+        Deck { cards: Vec::new() }
+    }
+
+    pub fn shuffle(&mut self) {
+        let mut rng = rand::rng();
+        self.cards.shuffle(&mut rng);
+    }
 }
 
 // Define the Card trait
-pub trait Card: fmt::Display {
-    fn card_type(&self) -> CardType;
+pub trait Card: fmt::Display + fmt::Debug + Sync + Send + Clone {
+    fn card_type(&self) -> CardTypeName;
     fn card_color(&self) -> CardColor;
     fn card_value(&self) -> Option<i32>;
     fn is_card_special(&self) -> bool;
     fn is_card_atout(&self) -> bool;
-    fn set_card_type(&mut self, _player_choice: CardType);
+    fn set_card_effect(&mut self, _player_choice: CardEffect);
     fn as_any(&self) -> &dyn std::any::Any;
 }
 
@@ -101,8 +153,8 @@ pub trait SkullKing: Special {}
 
 // Implement the traits for SkullCards
 impl Card for SkullCard {
-    fn card_type(&self) -> CardType {
-        CardType::Skull
+    fn card_type(&self) -> CardTypeName {
+        CardTypeName::Skull
     }
 
     fn card_color(&self) -> CardColor {
@@ -125,7 +177,7 @@ impl Card for SkullCard {
         true
     }
 
-    fn set_card_type(&mut self, _player_choice: CardType) {
+    fn set_card_effect(&mut self, _player_choice: CardEffect) {
         panic!("Cannot set card type on SkullCard");
     }
 }
@@ -137,8 +189,8 @@ impl fmt::Display for SkullCard {
 }
 
 impl Card for ColorCard {
-    fn card_type(&self) -> CardType {
-        CardType::Color
+    fn card_type(&self) -> CardTypeName {
+        CardTypeName::Color
     }
 
     fn card_color(&self) -> CardColor {
@@ -161,7 +213,7 @@ impl Card for ColorCard {
         false
     }
 
-    fn set_card_type(&mut self, _player_choice: CardType) {
+    fn set_card_effect(&mut self, _player_choice: CardEffect) {
         panic!("Cannot set card type on ColorCard");
     }
 }
@@ -173,8 +225,8 @@ impl fmt::Display for ColorCard {
 }
 
 impl Card for WhiteFlagCard {
-    fn card_type(&self) -> CardType {
-        CardType::Flag
+    fn card_type(&self) -> CardTypeName {
+        CardTypeName::Flag
     }
 
     fn card_color(&self) -> CardColor {
@@ -197,7 +249,7 @@ impl Card for WhiteFlagCard {
         false
     }
 
-    fn set_card_type(&mut self, _player_choice: CardType) {
+    fn set_card_effect(&mut self, _player_choice: CardEffect) {
         panic!("Cannot set card type on WhiteFlagCard");
     }
 }
@@ -209,8 +261,8 @@ impl fmt::Display for WhiteFlagCard {
 }
 
 impl Card for PirateCard {
-    fn card_type(&self) -> CardType {
-        CardType::Pirate
+    fn card_type(&self) -> CardTypeName {
+        CardTypeName::Pirate
     }
 
     fn card_color(&self) -> CardColor {
@@ -233,7 +285,7 @@ impl Card for PirateCard {
         false
     }
 
-    fn set_card_type(&mut self, _player_choice: CardType) {
+    fn set_card_effect(&mut self, _player_choice: CardEffect) {
         panic!("Cannot set card type on PirateCard");
     }
 }
@@ -248,8 +300,8 @@ impl Special for PirateCard {}
 impl Pirate for PirateCard {}
 
 impl Card for MermaidCard {
-    fn card_type(&self) -> CardType {
-        CardType::Mermaid
+    fn card_type(&self) -> CardTypeName {
+        CardTypeName::Mermaid
     }
 
     fn card_color(&self) -> CardColor {
@@ -272,7 +324,7 @@ impl Card for MermaidCard {
         false
     }
 
-    fn set_card_type(&mut self, _player_choice: CardType) {
+    fn set_card_effect(&mut self, _player_choice: CardEffect) {
         panic!("Cannot set card type on MermaidCard");
     }
 }
@@ -284,11 +336,11 @@ impl fmt::Display for MermaidCard {
 }
 
 impl Card for MarySueCard {
-    fn card_type(&self) -> CardType {
-        if self.choice.is_some() {
-            self.choice.unwrap()
-        } else {
-            CardType::Pirate
+    fn card_type(&self) -> CardTypeName {
+        match self.choice {
+            Some(CardEffect::Pirate) => CardTypeName::Pirate,
+            Some(CardEffect::Flag) => CardTypeName::Flag,
+            None => CardTypeName::Pirate,
         }
     }
 
@@ -312,7 +364,7 @@ impl Card for MarySueCard {
         false
     }
 
-    fn set_card_type(&mut self, player_choice: CardType) {
+    fn set_card_effect(&mut self, player_choice: CardEffect) {
         self.choice = Some(player_choice);
     }
 }
@@ -324,8 +376,8 @@ impl fmt::Display for MarySueCard {
 }
 
 impl Card for SkullKingCard {
-    fn card_type(&self) -> CardType {
-        CardType::SkullKing
+    fn card_type(&self) -> CardTypeName {
+        CardTypeName::SkullKing
     }
 
     fn card_color(&self) -> CardColor {
@@ -348,7 +400,7 @@ impl Card for SkullKingCard {
         false
     }
 
-    fn set_card_type(&mut self, _player_choice: CardType) {
+    fn set_card_effect(&mut self, _player_choice: CardEffect) {
         panic!("Cannot set card type on SkullKingCard");
     }
 }
@@ -363,23 +415,23 @@ impl Special for SkullKingCard {}
 impl SkullKing for SkullKingCard {}
 
 fn new_card(
-    card_type: CardType,
+    card_type: CardTypeName,
     card_number: Option<i32>,
     card_color: Option<CardColor>,
-) -> Box<dyn Card + Sync> {
+) -> PlayCard {
     match card_type {
-        CardType::Color => Box::new(ColorCard {
+        CardTypeName::Color => CardType::Color(ColorCard {
             color: card_color.unwrap(),
             value: card_number.unwrap(),
         }),
-        CardType::Skull => Box::new(SkullCard {
+        CardTypeName::Skull => CardType::Skull(SkullCard {
             value: card_number.unwrap(),
         }),
-        CardType::MarySue => Box::new(MarySueCard { choice: None }),
-        CardType::Flag => Box::new(WhiteFlagCard {}),
-        CardType::Mermaid => Box::new(MermaidCard {}),
-        CardType::Pirate => Box::new(PirateCard {}),
-        CardType::SkullKing => Box::new(SkullKingCard {}),
+        CardTypeName::MarySue => CardType::MarySue(MarySueCard { choice: None }),
+        CardTypeName::Flag => CardType::Flag(WhiteFlagCard {}),
+        CardTypeName::Mermaid => CardType::Mermaid(MermaidCard {}),
+        CardTypeName::Pirate => CardType::Pirate(PirateCard {}),
+        CardTypeName::SkullKing => CardType::SkullKing(SkullKingCard {}),
     }
 }
 
@@ -394,30 +446,38 @@ pub fn create_deck(nb_per_color: i32) -> Deck {
         for val in 1..=nb_per_color {
             result
                 .cards
-                .push(new_card(CardType::Color, Some(val), Some(color)));
+                .push(new_card(CardTypeName::Color, Some(val), Some(color)));
         }
     }
 
     for val in 1..=nb_per_color {
         result
             .cards
-            .push(new_card(CardType::Skull, Some(val), None));
+            .push(new_card(CardTypeName::Skull, Some(val), None));
     }
 
     for _flag in 0..WHITE_FLAG_NB {
-        result.cards.push(new_card(CardType::Flag, None, None));
+        result.cards.push(new_card(CardTypeName::Flag, None, None));
     }
 
     for _pirate in 0..PIRATE_NB {
-        result.cards.push(new_card(CardType::Pirate, None, None));
+        result
+            .cards
+            .push(new_card(CardTypeName::Pirate, None, None));
     }
 
     for _mermaid in 0..MERMAID_NB {
-        result.cards.push(new_card(CardType::Mermaid, None, None));
+        result
+            .cards
+            .push(new_card(CardTypeName::Mermaid, None, None));
     }
 
-    result.cards.push(new_card(CardType::SkullKing, None, None));
-    result.cards.push(new_card(CardType::MarySue, None, None));
+    result
+        .cards
+        .push(new_card(CardTypeName::SkullKing, None, None));
+    result
+        .cards
+        .push(new_card(CardTypeName::MarySue, None, None));
 
     return result;
 }
@@ -426,22 +486,19 @@ pub fn create_default_deck() -> Deck {
     create_deck(13)
 }
 
-pub fn beats(first: &Box<dyn Card>, second: &Box<dyn Card>) -> bool {
-    let first_card_type = first.card_type();
-    let second_card_type = second.card_type();
-
-    match (first_card_type, second_card_type) {
-        (_, CardType::Flag) => return true,
-        (CardType::Pirate, CardType::SkullKing) => return false,
-        (CardType::Pirate, _) => return true,
-        (CardType::Mermaid, CardType::Pirate) => return false,
-        (CardType::Mermaid, _) => return true, // todo mermaid beats pirate if there is a skullking
-        (CardType::SkullKing, _) => return true,
-        (CardType::Skull, CardType::Skull) => {
+pub fn beats(first: &PlayCard, second: &PlayCard) -> bool {
+    match (first, second) {
+        (_, CardType::Flag(_)) => return true,
+        (CardType::Pirate(_), CardType::SkullKing(_)) => return false,
+        (CardType::Pirate(_), _) => return true,
+        (CardType::Mermaid(_), CardType::Pirate(_)) => return false,
+        (CardType::Mermaid(_), _) => return true, // todo mermaid beats pirate if there is a skullking
+        (CardType::SkullKing(_), _) => return true,
+        (CardType::Skull(first), CardType::Skull(second)) => {
             return first.card_value().unwrap() > second.card_value().unwrap();
         }
-        (CardType::Skull, _) => return true,
-        (CardType::Color, CardType::Color) => {
+        (CardType::Skull(_), _) => return true,
+        (CardType::Color(first), CardType::Color(second)) => {
             if first.card_color() == second.card_color() {
                 return first.card_value().unwrap() > second.card_value().unwrap();
             }
@@ -454,15 +511,15 @@ pub fn beats(first: &Box<dyn Card>, second: &Box<dyn Card>) -> bool {
 #[cfg(test)]
 #[test]
 fn test_beats() {
-    let pirate = new_card(CardType::Pirate, None, None);
-    let skull_king = new_card(CardType::SkullKing, None, None);
-    let flag = new_card(CardType::Flag, None, None);
-    let mermaid = new_card(CardType::Mermaid, None, None);
-    let skull = new_card(CardType::Skull, Some(5), None);
-    let skull_2 = new_card(CardType::Skull, Some(3), None);
-    let color_red_5 = new_card(CardType::Color, Some(5), Some(CardColor::Red));
-    let color_red_3 = new_card(CardType::Color, Some(3), Some(CardColor::Red));
-    let color_blue_5 = new_card(CardType::Color, Some(5), Some(CardColor::Blue));
+    let pirate = new_card(CardTypeName::Pirate, None, None);
+    let skull_king = new_card(CardTypeName::SkullKing, None, None);
+    let flag = new_card(CardTypeName::Flag, None, None);
+    let mermaid = new_card(CardTypeName::Mermaid, None, None);
+    let skull = new_card(CardTypeName::Skull, Some(5), None);
+    let skull_2 = new_card(CardTypeName::Skull, Some(3), None);
+    let color_red_5 = new_card(CardTypeName::Color, Some(5), Some(CardColor::Red));
+    let color_red_3 = new_card(CardTypeName::Color, Some(3), Some(CardColor::Red));
+    let color_blue_5 = new_card(CardTypeName::Color, Some(5), Some(CardColor::Blue));
 
     assert!(beats(&pirate, &flag));
     assert!(!beats(&pirate, &skull_king));

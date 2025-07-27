@@ -1,7 +1,7 @@
 use std::fmt;
 
 // A public struct with a public field of generic type `T`
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Player {
     pub name: String,
     pub player_id: i32,

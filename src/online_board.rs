@@ -1,25 +1,27 @@
+use game::PlayCard;
 use rand::{rng, seq::SliceRandom};
 
-use crate::{game, user::Player};
+use crate::{
+    game::{self, Deck},
+    user::Player,
+};
 use std::fmt;
 
+#[derive(Debug, Clone)]
 pub struct Seat {
     pub player: Player,
-    pub hand: Vec<Box<dyn game::Card + Sync>>,
-    pub plis: Vec<Box<dyn game::Card + Sync>>,
+    pub hand: Vec<PlayCard>,
+    pub plis: Vec<PlayCard>,
 }
 
+#[derive(Debug, Clone)]
 pub struct PlayedCard {
     order: i32,
     player_id: i32,
-    card: Box<dyn game::Card + Sync>,
+    card: PlayCard,
 }
 
-pub fn play_card(
-    table_river: &mut Vec<PlayedCard>,
-    player: &Player,
-    card: Box<dyn game::Card + Sync>,
-) {
+pub fn play_card(table_river: &mut Vec<PlayedCard>, player: &Player, card: PlayCard) {
     let played_card = PlayedCard {
         order: table_river.len() as i32,
         player_id: player.player_id,
@@ -64,11 +66,23 @@ pub fn clear_table_after_game(table: &mut Table) {
     table.deck.cards.shuffle(&mut rng);
 }
 
+#[derive(Debug, Clone)]
 pub struct Table {
     pub seats: Vec<Seat>,
-    pub deck: game::Deck,
+    pub deck: Deck,
     pub river: Vec<PlayedCard>,
     pub seat_count: i32,
+}
+
+impl Table {
+    pub const fn new() -> Self {
+        Table {
+            seats: Vec::new(),
+            deck: Deck::default(),
+            river: Vec::new(),
+            seat_count: 0,
+        }
+    }
 }
 
 impl fmt::Display for Seat {
